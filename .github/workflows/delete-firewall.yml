@@ -39,4 +39,4 @@ jobs:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           FIREWALL_ID: ${{ inputs.firewall_id }}
           CLEANUP_RUN: ${{ inputs.cleanup_run }}
-        run: python3 -I source/watchdog.py
+        run: python3 -u -I source/watchdog.py
