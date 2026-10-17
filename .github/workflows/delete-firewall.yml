@@ -1,0 +1,42 @@
+name: Free firewall deletion proof
+"on":
+  workflow_dispatch:
+    inputs:
+      firewall_id:
+        description: Exact ID of explicitly approved unattached free firewall
+        required: true
+        type: string
+      cleanup_run:
+        description: Exact 32 lowercase hexadecimal ownership label
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: cleanup-firewall-proof
+  cancel-in-progress: false
+jobs:
+  proof:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: cleanup-proof
+    steps:
+      - name: Fetch this reviewed public commit without credentials
+        env:
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -eu
+          [[ "$REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "$COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          mkdir source
+          git -C source init --quiet
+          GIT_TERMINAL_PROMPT=0 git -C source -c credential.helper= fetch --depth=1 "https://github.com/$REPOSITORY.git" "$COMMIT"
+          git -C source checkout --detach --quiet FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$COMMIT"
+      - name: Bounded exact-resource proof
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          FIREWALL_ID: ${{ inputs.firewall_id }}
+          CLEANUP_RUN: ${{ inputs.cleanup_run }}
+        run: python3 -I source/watchdog.py
